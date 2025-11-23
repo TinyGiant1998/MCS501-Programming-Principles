@@ -1,6 +1,5 @@
 import datetime
 import random
-import sys
 
 # Zone Fares
 zones = {
@@ -29,7 +28,6 @@ card = {
 available_stations = ", ".join(sorted(stations.keys()))
 station_prompt = f"Enter station ({available_stations}): "
 trip_log = []
-minimum_fare = min(zones.values())
 off_peak_discount = 0.25
 random_inspection_chance = 10
 
@@ -136,6 +134,17 @@ while True:
 
     if choice == "5":
         while True:
+            if not card["in_trip"]:
+                print("You are not currently in a trip. (Tap ON first)")
+                inspect_roll = random.randint(0, 99)
+                warning_or_not = (
+                    "Inspection: Irregular activity detected. Penalty warning issued.\n"
+                    if inspect_roll < random_inspection_chance
+                    else "Inspection: Irregular activity noted. Please tap ON next time.\n"
+                )
+                print(warning_or_not)
+                break
+
             user_station = input(station_prompt).lower().strip()
             if user_station == "":
                 print(f"Please enter a station name ({available_stations}): ")
@@ -154,17 +163,6 @@ while True:
                 continue
 
             card["tap_off_dest"] = tap_off_dest
-
-            if not card["in_trip"]:
-                print("You are not currently in a trip. (Tap ON first)")
-                inspect_roll = random.randint(0, 99)
-                warning_or_not = (
-                    "Inspection: Irregular activity detected. Penalty warning issued.\n"
-                    if inspect_roll < random_inspection_chance
-                    else "Inspection: Irregular activity noted. Please tap ON next time.\n"
-                )
-                print(warning_or_not)
-                break
 
             # Fare calculation
             origin = card["tap_on_station"]
@@ -244,5 +242,5 @@ while True:
         continue
 
     if choice == "7":
-        print("Exiting MetroTicketSim")
+        print("Exiting MetroTicketSim. See you next time 👋")
         break
