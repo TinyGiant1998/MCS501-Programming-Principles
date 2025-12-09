@@ -1,0 +1,14 @@
+[
+    {
+        "event_code": "E1",
+        "name": "Python Crash Course",
+        "organiser_id": "s001",
+        "expected_attendees": 35,
+        "required_features": [
+            "projector"
+        ],
+        "duration_hours": 4,
+        "mode": "Block",
+        "dependencies": []
+    }
+]
