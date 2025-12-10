@@ -1,14 +1,54 @@
 [
     {
-        "event_code": "E1",
-        "name": "Python Crash Course",
-        "organiser_id": "s001",
-        "expected_attendees": 35,
+        "event_code": "EV101",
+        "name": "Welcome Briefing",
+        "organiser_id": "02001",
+        "expected_attendees": 80,
         "required_features": [
             "projector"
         ],
-        "duration_hours": 4,
+        "duration_hours": 2,
+        "mode": "Regular",
+        "dependencies": []
+    },
+    {
+        "event_code": "EV102",
+        "name": "Robotics Lab Intro",
+        "organiser_id": "02001",
+        "expected_attendees": 25,
+        "required_features": [
+            "lab",
+            "projector"
+        ],
+        "duration_hours": 3,
         "mode": "Block",
+        "dependencies": []
+    },
+    {
+        "event_code": "EV103",
+        "name": "Robotics Showcase",
+        "organiser_id": "02001",
+        "expected_attendees": 100,
+        "required_features": [
+            "projector",
+            "stage"
+        ],
+        "duration_hours": 2,
+        "mode": "Regular",
+        "dependencies": [
+            "EV102"
+        ]
+    },
+    {
+        "event_code": "EV201",
+        "name": "Entrepreneurship 101",
+        "organiser_id": "02002",
+        "expected_attendees": 50,
+        "required_features": [
+            "projector"
+        ],
+        "duration_hours": 1,
+        "mode": "Regular",
         "dependencies": []
     }
 ]

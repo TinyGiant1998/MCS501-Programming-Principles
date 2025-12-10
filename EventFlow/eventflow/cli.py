@@ -17,24 +17,14 @@ WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri"]
 
 
 # -------------------------
-# Helpers
+# Data Loading Helpers
 # -------------------------
-def load_sample_data():
-    # create sample rooms if none exist
-    if load_json("rooms.json") is None:
-        r1 = Room("B1.201", "B1", 60, ["projector", "accessible"], "Regular")
-        r2 = Room("B1.310", "B1", 28, ["lab", "projector"], "Block")
-        r3 = Room("C2.105", "C2", 120, ["projector", "stage", "accessible"], "Regular")
-        for r in (r1, r2, r3):
-            r.initialize_week(weekdays=WEEKDAYS)
-            ROOMS[r.room_code] = r
-        save_json("rooms.json", [r.__dict__ for r in ROOMS.values()])
-
-    loaded = load_json("rooms.json")
-    if loaded:
-        # recreate objects
-        ROOMS.clear()
-        for r in loaded:
+def load_all_data():
+    # ROOMS
+    loaded_rooms = load_json("rooms.json")
+    ROOMS.clear()
+    if loaded_rooms:
+        for r in loaded_rooms:
             room = Room(
                 r["room_code"],
                 r["building"],
@@ -43,17 +33,61 @@ def load_sample_data():
                 r["mode"],
                 r.get("available_slots", {}),
             )
-            # If available_slots empty, initialize defaults:
             if not room.available_slots:
                 room.initialize_week(weekdays=WEEKDAYS)
             ROOMS[room.room_code] = room
+
+    # EVENTS
+    loaded_events = load_json("events.json")
+    EVENTS.clear()
+    if loaded_events:
+        for e in loaded_events:
+            EVENTS[e["event_code"]] = Event(
+                e["event_code"],
+                e["name"],
+                e["organiser_id"],
+                e["expected_attendees"],
+                e["required_features"],
+                e["duration_hours"],
+                e["mode"],
+                e.get("dependencies", []),
+            )
+
+    # ORGANISERS
+    loaded_orgs = load_json("organisers.json")
+    ORGANISERS.clear()
+    if loaded_orgs:
+        for o in loaded_orgs:
+            org = Organiser(o.get("name", ""), o.get("organiser_id", ""))
+            org.record = o.get("record", {})
+            ORGANISERS[org.organiser_id] = org
+
+    # SCHEDULE
+    loaded_sched = load_json("schedule.json")
+    SCHEDULE.bookings.clear()
+    if loaded_sched:
+        for k, v in loaded_sched.items():
+            tup = eval(k)
+            SCHEDULE.bookings[tup] = v
 
 
 def save_state():
     save_json("rooms.json", [r.__dict__ for r in ROOMS.values()])
     save_json("events.json", [e.__dict__ for e in EVENTS.values()])
     save_json("schedule.json", {f"{k}": v for k, v in SCHEDULE.bookings.items()})
-    save_json("organisers.json", {k: o.record for k, o in ORGANISERS.items()})
+    # Save full organiser data
+    save_json(
+        "organisers.json",
+        [
+            {
+                "name": o.name,
+                "organiser_id": o.organiser_id,
+                "events_scheduled": getattr(o, "events_scheduled", []),
+                "record": o.record,
+            }
+            for o in ORGANISERS.values()
+        ],
+    )
 
 
 def print_rooms():
@@ -137,12 +171,18 @@ def sort_menu():
     ).strip()
     if target.startswith("e"):
         arr = list(EVENTS.values())
+        if not arr or not hasattr(arr[0], keyname):
+            print(f"Invalid attribute '{keyname}' for events.")
+            return
         sorted_arr = merge_sort(arr, key=lambda ev: getattr(ev, keyname))
         print("Events sorted:")
         for ev in sorted_arr:
             print(f"{ev.event_code} — {ev.name} — {getattr(ev, keyname)}")
     else:
         arr = list(ROOMS.values())
+        if not arr or not hasattr(arr[0], keyname):
+            print(f"Invalid attribute '{keyname}' for rooms.")
+            return
         sorted_arr = merge_sort(arr, key=lambda r: getattr(r, keyname))
         for r in sorted_arr:
             print(f"{r.room_code} — {getattr(r, keyname)}")
@@ -275,7 +315,7 @@ def plan_weekly_schedule():
 # CLI main
 # -------------------------
 def main_loop():
-    load_sample_data()
+    load_all_data()
     while True:
         print("\n========== EventFlow — Campus Scheduler ==========")
         print("1. Register Organiser")
@@ -308,12 +348,80 @@ def main_loop():
             save_state()
             print("Saved.")
         elif choice == "9":
-            print("Load not implemented fully; restart to reload sample data.")
+            # Load schedule and master data from files
+            loaded_rooms = load_json("rooms.json")
+            loaded_events = load_json("events.json")
+            loaded_orgs = load_json("organisers.json")
+            loaded_sched = load_json("schedule.json")
+            if loaded_rooms:
+                ROOMS.clear()
+                for r in loaded_rooms:
+                    room = Room(
+                        r["room_code"],
+                        r["building"],
+                        r["capacity"],
+                        r["features"],
+                        r["mode"],
+                        r.get("available_slots", {}),
+                    )
+                    ROOMS[room.room_code] = room
+            if loaded_events:
+                EVENTS.clear()
+                for e in loaded_events:
+                    EVENTS[e["event_code"]] = Event(
+                        e["event_code"],
+                        e["name"],
+                        e["organiser_id"],
+                        e["expected_attendees"],
+                        e["required_features"],
+                        e["duration_hours"],
+                        e["mode"],
+                        e.get("dependencies", []),
+                    )
+            if loaded_orgs:
+                ORGANISERS.clear()
+                if isinstance(loaded_orgs, list):
+                    for o in loaded_orgs:
+                        org = Organiser(o.get("name", ""), o.get("organiser_id", ""))
+                        org.record = o.get("record", {})
+                        ORGANISERS[org.organiser_id] = org
+                elif isinstance(loaded_orgs, dict):
+                    # Legacy dict format fallback
+                    for oid, rec in loaded_orgs.items():
+                        org = Organiser("", oid)
+                        org.record = rec
+                        ORGANISERS[oid] = org
+            if loaded_sched:
+                # Defensive: clear and repopulate the schedule's bookings dict
+                if hasattr(SCHEDULE, "bookings"):
+                    SCHEDULE.bookings.clear()
+                    for k, v in loaded_sched.items():
+                        tup = eval(k)
+                        SCHEDULE.bookings[tup] = v
+                    print(
+                        f"Schedule loaded. {len(SCHEDULE.bookings)} bookings restored."
+                    )
+                else:
+                    print("Error: SCHEDULE object missing 'bookings' attribute.")
+            else:
+                print("No schedule data found.")
         elif choice == "10":
             oid = input("Organiser ID: ").strip()
             o = ORGANISERS.get(oid)
             if o:
-                print(f"Record for {o.name}: {o.record}")
+                completed = [k for k, v in o.record.items() if v == "completed"]
+                cancelled = [k for k, v in o.record.items() if v == "cancelled"]
+                scheduled = [k for k, v in o.record.items() if v == "scheduled"]
+                block_count = 0
+                for ev_code in scheduled:
+                    ev = EVENTS.get(ev_code)
+                    if ev and ev.mode.lower() == "block":
+                        block_count += 1
+                print(f"Record for {o.name} ({o.organiser_id})")
+                print(f"- Completed: {', '.join(completed) if completed else '-'}")
+                print(f"- Cancelled: {', '.join(cancelled) if cancelled else '-'}")
+                print(f"- Scheduled: {', '.join(scheduled) if scheduled else '-'}")
+                print(f"Block events this week: {block_count}")
             else:
                 print("Not found.")
         elif choice == "11":

@@ -7,6 +7,10 @@ class Schedule:
     # mapping event_code with (weekday, room_code, start_slot)
     bookings: Dict[Tuple[str, str, int], str] = field(default_factory=dict)
 
+    def assign(self, weekday: str, room_code: str, start_slot: int, event_code: str):
+        """Assign an event to the schedule at the given start slot (for planner compatibility)."""
+        self.bookings[(weekday, room_code, start_slot)] = event_code
+
     def is_slot_free(
         self, weekday: str, room_code: str, start_slot: int, duration_hours: int
     ) -> bool:

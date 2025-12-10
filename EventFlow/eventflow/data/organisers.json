@@ -1,3 +1,23 @@
-{
-    "s001": {}
-}
+[
+    {
+        "name": "Ava Thompson",
+        "organiser_id": "02001",
+        "events_scheduled": [],
+        "record": {
+            "EV102": "scheduled",
+            "EV103": "scheduled"
+        }
+    },
+    {
+        "name": "Noah Patel",
+        "organiser_id": "02002",
+        "events_scheduled": [],
+        "record": {}
+    },
+    {
+        "name": "Mia Nguyen",
+        "organiser_id": "02003",
+        "events_scheduled": [],
+        "record": {}
+    }
+]
